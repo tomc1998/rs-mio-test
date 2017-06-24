@@ -4,3 +4,6 @@ version = "0.1.0"
 authors = ["Thomas Cheng <thomascheng1998@googlemail.com>"]
 
 [dependencies]
+glium = "*"
+specs = "0.8.0"
+nalgebra = "*"

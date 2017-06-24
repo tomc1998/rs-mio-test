@@ -1,3 +1,11 @@
+#[macro_use]
+extern crate glium;
+extern crate specs;
+extern crate nalgebra;
+
+mod renderer;
+mod component;
+
 use std::io::prelude::*;
 use std::net::{TcpStream, UdpSocket, SocketAddr};
 
@@ -22,8 +30,16 @@ impl RegPacket {
   }
 }
 
-fn main() {
+use glium::backend::glutin_backend::GlutinFacade;
 
+fn setup_display() -> GlutinFacade {
+  use glium::DisplayBuild;
+  glium::glutin::WindowBuilder::new().build_glium().unwrap()
+}
+
+fn main() {
+  let display = setup_display();
+  let renderer = renderer::Renderer::new(&display);
   let this_addr : SocketAddr = "127.0.0.1:0".parse().unwrap();
 
   let server_udp_addr : SocketAddr = "127.0.0.1:12345".parse().unwrap();
