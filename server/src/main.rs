@@ -65,8 +65,8 @@ impl Client {
       let packet_body = self.tcp_buf.drain(0..(packet_size+7) as usize)
         .skip(7).collect::<Vec<u8>>();
       if packet_type[..] == *("reg".as_bytes()) {
-        use std::str::from_utf8;
-        println!("Received a registration packet with data {}", from_utf8(&packet_body[..]).unwrap());
+        let reg_packet = RegPacket::deserialise(&packet_body[..]).ok().unwrap();
+        println!("Received reg packet with name \"{}\"", reg_packet.name);
       }
     }
   }
