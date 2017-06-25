@@ -5,6 +5,7 @@ extern crate nalgebra;
 
 mod renderer;
 mod component;
+mod state;
 
 use std::io::prelude::*;
 use std::net::{TcpStream, UdpSocket, SocketAddr};
@@ -39,7 +40,25 @@ fn setup_display() -> GlutinFacade {
 
 fn main() {
   let display = setup_display();
-  let renderer = renderer::Renderer::new(&display);
+  let mut renderer = renderer::Renderer::new(&display);
+
+  // Create ECS
+  let mut planner : specs::Planner<state::GlobalState> = {
+    use component::*;
+    let mut w = specs::World::new();
+    w.register::<CompAABB>();
+    w.register::<CompBody>();
+    w.register::<CompColor>();
+    w.create_now().with(CompAABB([0.0, 0.0, 32.0, 32.0]))
+      .with(CompColor([0.0, 1.0, 0.0, 1.0]))
+      .with(CompBody{vel: [0.0, 0.0], acc: [0.5, 0.3], mass: 5.0, flags: BODY_GRAVITY})
+      .build();
+    specs::Planner::new(w)
+  };
+
+  // Add systems
+  planner.add_system::<renderer::SysRenderer>(renderer::SysRenderer::new(&renderer), "render", 0);
+
   let this_addr : SocketAddr = "127.0.0.1:0".parse().unwrap();
 
   let server_udp_addr : SocketAddr = "127.0.0.1:12345".parse().unwrap();
@@ -58,6 +77,32 @@ fn main() {
     // Register us with the name 'John'
     let reg_packet = RegPacket::new("John");
     stream.write(&reg_packet.serialise()).unwrap();
+  }
+
+  loop {
+    // Check input
+    for ev in display.poll_events() {
+      use glium::glutin::Event;
+      match ev {
+        Event::Closed => return,
+          _ => ()
+      }
+    }
+
+    // Dispatch ECS with the global state object
+    planner.dispatch(state::GlobalState);
+    planner.wait();
+
+    // Recieve any data sent using the renderer controller whilst the ecs was
+    // running
+    renderer.recv_data();
+
+    // Render everything
+    use glium::Surface;
+    let mut frame = display.draw();
+    frame.clear_color(0.0, 0.0, 0.0, 1.0);
+    renderer.render(&mut frame);
+    frame.finish().unwrap();
   }
 }
 
