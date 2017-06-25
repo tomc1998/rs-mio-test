@@ -1,0 +1,130 @@
+Terminology
+===========
+
+* `Game tickrate` - The rate at which the game ticks, i.e. how much is
+                    simulated every second. This is 60 steps per second. It
+                    lines up with a game render on the client.
+
+* `Comm tickrate` - The rate at which the server communicates to the clients a
+                    new game update. This is 20 steps per second, and is slower
+                    than the game tickrate for bandwidth reasons.
+
+* `Tickstamp` - This is essentially a timestamp, but refers to a game tick
+                instead. Note that this refers to the game tick, not the
+                communication tick, which happens a lot slower than the game
+                tick.
+
+* `CSP` - Client side prediction
+
+
+* * *
+
+
+Client side prediction (CSP) of user input
+====================================
+
+The client predicts based on user input. The input is also sent to the server,
+and any mistakes in prediction will be corrected in the regular server update
+packets. However, the server is always a bit behind the client, so A tickstamp
+is sent along with the input to the server. The timestamp is sent so that the
+server can rewind and insert the input at a previous tick, then resimulate the
+game with it so that players with a large latency can still smoothly play the
+game. 
+
+This is slightly insecure as a hacked client can spoof a tickstamp value, so
+the server will set a maximum rewind limit (i.e. if 60 ticks a second, then a
+max rewind limit of 6 will mean pings of over 200 (ping is round trip remember)
+will not be able to play the game reliably without jerks and stutters, as they
+will tickstamp the input with a tick that occurred more than 100 milliseconds
+ago once it reaches the server). If the tickstamp is less than the maximum
+rewind limit allows, the server instead rewinds as far as possible. This means
+the client will stutter, as the prediction will be further ahead of the
+server's model.
+
+The server rewinds to the previous state, but keeps the info of when other
+player's input occurs. The server then inserts the new input, and resimulates
+the world with this new input along with all the existing input. This is where
+the client's prediction can be incorrect. 
+
+NOTE: When implementing this on the server, remember to keep track of all the
+user inputs even when rewinding through them, and add them to the simulation
+when resimulating.
+
+Issues with this CSP model
+--------------------------
+
+Tickstamp system can be abused by spoofing the tickstamp to allow player's to
+travel back in time. This should be minimised by watching for suspiciously
+varied pings to ban abusers, and also favouring clients with lower pings.
+
+
+* * *
+
+Client - server reconciliation
+==============================
+
+An issue with client server prediction is that a client might make 2 moves and
+predict them both before the server can correct the first, meaning the server's
+update packet will return the client to a state where input #1 has been made,
+but input #2 hasn't. This will correct the client, then RE-correct it when the
+next packet comes that takes into account input #2.
+
+For this reason, server update packets will come with a game tick. This will
+also help the client discard old update packets that game in the wrong order.
+The client will remember the latest server update packet, and the tick that
+came attached to it. It will also remember all the input and the tickstamp of
+said input the player has made in the game so far. The client will then rewind
+the game state to the tick of the update packet, and make sure its predictions
+were correct at that point. If so, no changes need to be made - even if the
+current state of the client is different!
+
+The client should hold inputs in a queue structure, and discard them based on
+new server updates. Once an update is received, the client can pop inputs from
+the front of the queue until the one at the front has occurred after the
+update, as all the old inputs are now obselete.
+
+Older server update packets can just be discarded.
+
+* * *
+
+Fixing issues with missed inputs due to packet loss
+===================================================
+
+Sometimes, the user's input might not be sent to the server. This will result
+in the client predicting the users movement, and being snapped back into place
+once the server corrects it. The player entity's velocity will be 0, and the
+player's character will just not move, despite the player holding down the
+movement key. In a scenario where the client must correct the player
+character's position, the client check the player's currently 'held' inputs and
+resend them to the server, as if they had just been pressed. The client can
+then start predicting the player character's movement from the current position
+given the held input just polled.
+
+This should also be done if the player releases a key, but their character does
+not stop moving.
+
+Instead of this system, one could instead implement a mini TCP on top of UDP
+where confirmation packets are sent back and forth, but this is far too
+complicated and the above example essentially functions the same, using the
+server update packet as a confirmation.
+
+* * *
+
+Serialising client input 
+========================
+
+Whilst it may be tempting to send separate packet types whenever an input is
+pressed, a more robust way would be to instead send the current input state
+whenever an input changes. This can help correct issues with dropped packets
+occassionally, and also puts a lot of unused bits to use in the case of
+discrete controls (like keyboard buttons).
+
+Controls will be assigned a given bit position, for example left, right, jump,
+shoot as bits 0, 1, 2, and 3 respectively. When a player presses the shoot key,
+4 bits can be sent with all the discrete input state, 0 being off and 1 being
+on.
+
+If we were tracking inputs separately, we'd end up using a whole byte to
+indicate the state of 1 control, wasting 7 bits of info which could be put to
+use essentially error correcting any potential dropped packets. 
+
