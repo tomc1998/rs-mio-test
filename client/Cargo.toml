@@ -6,5 +6,6 @@ authors = ["Thomas Cheng <thomascheng1998@googlemail.com>"]
 [dependencies]
 glium = "*"
 specs = "0.8.0"
+time = "*"
 nalgebra = "*"
 common = { path = "../common" }
