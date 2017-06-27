@@ -2,8 +2,10 @@
 //! deserialisation methods.
 
 mod reg;
+mod game_join;
 
 pub use self::reg::RegPacket;
+pub use self::game_join::GameJoinPacket;
 
 use std::{fmt, error};
 
@@ -37,3 +39,6 @@ pub trait Packet {
   fn serialise(&self) -> Vec<u8>;
   fn deserialise(buf: &[u8]) -> Result<Self, DeserialiseError> where Self: Sized;
 }
+
+pub const TAG_REGISTER : &'static str = "reg";
+pub const TAG_GAME_JOIN : &'static str = "gmj";

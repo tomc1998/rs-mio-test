@@ -1,4 +1,4 @@
-use net::{Packet, DeserialiseError};
+use net::{Packet, DeserialiseError, TAG_REGISTER};
 
 /// A packet for registration.
 pub struct RegPacket {
@@ -17,7 +17,7 @@ impl Packet for RegPacket {
     let payload_len = payload.len() as u32;
     let mut ret = Vec::with_capacity(payload_len as usize + 7);
     unsafe { ret.extend_from_slice(&transmute::<u32, [u8; 4]>(payload_len)[..]) };
-    ret.extend_from_slice("reg".as_bytes());
+    ret.extend_from_slice(TAG_REGISTER.as_bytes());
     ret.extend_from_slice(&payload.as_bytes());
     return ret;
   }
