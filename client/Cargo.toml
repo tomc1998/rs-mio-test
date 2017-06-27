@@ -7,3 +7,4 @@ authors = ["Thomas Cheng <thomascheng1998@googlemail.com>"]
 glium = "*"
 specs = "0.8.0"
 nalgebra = "*"
+common = { path = "../common" }

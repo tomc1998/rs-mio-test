@@ -2,35 +2,15 @@
 extern crate glium;
 extern crate specs;
 extern crate nalgebra;
+extern crate common;
 
 mod renderer;
 mod component;
 
 use std::io::prelude::*;
 use std::net::{TcpStream, UdpSocket, SocketAddr};
-
-/// A packet for registration.
-pub struct RegPacket {
-  pub name: String,
-}
-impl RegPacket {
-  pub fn new(name: &str) -> RegPacket {
-    RegPacket { name: name.to_owned() }
-  }
-
-  pub fn serialise(&self) -> Vec<u8> {
-    use std::mem::transmute;
-    let payload = &self.name;
-    let payload_len = payload.len() as u32;
-    let mut ret = Vec::with_capacity(payload_len as usize + 7);
-    unsafe { ret.extend_from_slice(&transmute::<u32, [u8; 4]>(payload_len)[..]) };
-    ret.extend_from_slice("reg".as_bytes());
-    ret.extend_from_slice(&payload.as_bytes());
-    return ret;
-  }
-}
-
 use glium::backend::glutin_backend::GlutinFacade;
+use common::net::{Packet, RegPacket};
 
 fn setup_display() -> GlutinFacade {
   use glium::DisplayBuild;
