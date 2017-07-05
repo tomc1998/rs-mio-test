@@ -4,10 +4,7 @@ extern crate common;
 mod client;
 
 use client::Client;
-use common::net::{Packet, RegPacket};
-use std::net::SocketAddr;
-use std::collections::VecDeque;
-use mio::net::{UdpSocket, TcpListener, TcpStream};
+use mio::net::{UdpSocket, TcpListener};
 use mio::{Token, Poll, Ready, PollOpt, Events};
 
 fn main() {

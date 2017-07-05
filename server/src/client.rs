@@ -1,6 +1,11 @@
 //! A module for representing connected clients in memory, and storing their
 //! associated data.
 
+use mio::net::TcpStream;
+use std::net::SocketAddr;
+use std::collections::VecDeque;
+use common::net::{RegPacket, Packet};
+
 /// A struct representing a client.
 pub struct Client {
   /// The ID of this client.
