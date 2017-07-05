@@ -42,6 +42,7 @@ fn main() {
     specs::Planner::new(w)
   };
 
+  // Add systems
   planner.add_system::<renderer::SysRenderer>(renderer::SysRenderer::new(&renderer), "render", 0);
 
   let this_addr : SocketAddr = "127.0.0.1:0".parse().unwrap();
